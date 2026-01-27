@@ -7,116 +7,277 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: QuizPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class QuizPage extends StatefulWidget {
+  const QuizPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<QuizPage> createState() => _QuizPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _QuizPageState extends State<QuizPage> {
+  int step = 0; // 0 = start, 1 = quiz, 2 = end
+  int index = 0;
+  int selected = -1;
+  int score = 0;
+  String feedback = "";
 
-  void _incrementCounter() {
+  final List<Map<String, dynamic>> questions = [
+    {
+      "q": "Which feature would help Ana’s Sari-Sari Store in Batangas City?",
+      "a": [
+        "Inventory alerts",
+        "Music player",
+        "Photo editor",
+        "Flashlight"
+      ],
+      "c": 0,
+    },
+    {
+      "q": "What feature helps a salon manage customer schedules?",
+      "a": [
+        "Appointment booking",
+        "Calculator",
+        "Alarm clock",
+        "Wallpaper"
+      ],
+      "c": 0,
+    },
+    {
+      "q": "What app feature helps customers send feedback to a café?",
+      "a": [
+        "Customer feedback form",
+        "Game mode",
+        "Photo filter",
+        "Music player"
+      ],
+      "c": 0,
+    },
+    {
+      "q": "What feature helps a repair shop organize customers?",
+      "a": [
+        "Queue number system",
+        "Weather forecast",
+        "Chat stickers",
+        "Flashlight"
+      ],
+      "c": 0,
+    },
+    {
+      "q": "What feature helps a delivery business accept orders?",
+      "a": [
+        "Delivery requests",
+        "Photo gallery",
+        "Clock widget",
+        "Calculator"
+      ],
+      "c": 0,
+    },
+  ];
+
+  void startQuiz() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      step = 1;
+      index = 0;
+      selected = -1;
+      score = 0;
+      feedback = "";
+    });
+  }
+
+  void chooseAnswer(int i) {
+    if (selected != -1) return;
+
+    setState(() {
+      selected = i;
+      if (i == questions[index]["c"]) {
+        score++;
+        feedback = "Correct ✅";
+      } else {
+        feedback = "Wrong ❌";
+      }
+    });
+
+    // Auto next question
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      setState(() {
+        selected = -1;
+        feedback = "";
+        if (index < questions.length - 1) {
+          index++;
+        } else {
+          step = 2;
+        }
+      });
+    });
+  }
+
+  void restart() {
+    setState(() {
+      step = 0;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      backgroundColor: const Color(0xFFF2F4F8),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        child: Container(
+          width: 420,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: const [
+              BoxShadow(
+                blurRadius: 12,
+                color: Colors.black12,
+              )
+            ],
+          ),
+          child: buildContent(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+    );
+  }
+
+  Widget buildContent() {
+    // START VIEW
+    if (step == 0) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            "Business Quiz",
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: startQuiz,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text("Start Quiz"),
+          ),
+        ],
+      );
+    }
+
+    // QUIZ VIEW
+    if (step == 1) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Question ${index + 1} / ${questions.length}",
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            questions[index]["q"],
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          for (int i = 0; i < 4; i++)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ElevatedButton(
+                onPressed:
+                    selected == -1 ? () => chooseAnswer(i) : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: selected == -1
+                      ? Colors.indigo.shade50
+                      : i == questions[index]["c"]
+                          ? Colors.green
+                          : i == selected
+                              ? Colors.red
+                              : Colors.grey.shade300,
+                  foregroundColor:
+                      selected == -1 ? Colors.indigo : Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.all(14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(questions[index]["a"][i]),
+              ),
+            ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            feedback,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: feedback.contains("Correct")
+                  ? Colors.green
+                  : Colors.red,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // END VIEW
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          "Finished 🎉",
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.indigo,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "Score: $score / ${questions.length}",
+          style: const TextStyle(fontSize: 18),
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: restart,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            foregroundColor: Colors.white,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: const Text("Restart"),
+        ),
+      ],
     );
   }
 }
