@@ -25,3 +25,6 @@ Naga City
 **What problem the app solves:**  
 This app provides a simple and interactive way for users to test their business knowledge.  
 It helps students review concepts through quizzes instead of traditional reading.
+
+assets:
+      - assets/imgs/cafe.png

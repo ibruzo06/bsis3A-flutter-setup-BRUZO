@@ -1,131 +1,92 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mini Form',
+void main() => runApp(const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const MiniFormPage(),
+      home: HomePage(),
+    ));
+
+// ── Home ──
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final List<String> _expenses = [];
+
+  Future<void> _addExpense() async {
+    final title = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddPage()),
     );
+    if (title != null && mounted) {
+      setState(() => _expenses.add(title));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Added: $title')),
+      );
+    }
   }
-}
-
-class MiniFormPage extends StatefulWidget {
-  const MiniFormPage({super.key});
 
   @override
-  State<MiniFormPage> createState() => _MiniFormPageState();
-}
-
-class _MiniFormPageState extends State<MiniFormPage> {
-  // controllers for the input fields
-  final nameController = TextEditingController();
-  final messageController = TextEditingController();
-
-  // key for form validation
-  final formKey = GlobalKey<FormState>();
-
-  // values to show in preview
-  String name = '';
-  String message = '';
-  bool isSubmitted = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mini Form'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: messageController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Message',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  ElevatedButton(
-                    onPressed: () {
-                      if (formKey.currentState!.validate()) {
-                        setState(() {
-                          name = nameController.text;
-                          message = messageController.text;
-                          isSubmitted = true;
-                        });
-                      }
-                    },
-                    child: const Text('Submit'),
-                  ),
-                ],
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Expenses')),
+        body: _expenses.isEmpty
+            ? const Center(child: Text('No expenses yet!'))
+            : ListView(
+                children: _expenses
+                    .map((e) => ListTile(leading: const Icon(Icons.receipt), title: Text(e)))
+                    .toList(),
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            if (isSubmitted)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Preview',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text('Name: $name'),
-                      const SizedBox(height: 4),
-                      Text('Message: $message'),
-                    ],
-                  ),
-                ),
-              ),
-          ],
+        floatingActionButton: Tooltip(
+          message: 'Add Expense',         // 👈 shows on long-press or hover
+          child: FloatingActionButton(
+            onPressed: _addExpense,
+            child: const Icon(Icons.add),
+          ),
         ),
-      ),
-    );
+      );
+}
+
+// ── Add Expense ──
+class AddPage extends StatefulWidget {
+  const AddPage({super.key});
+  @override
+  State<AddPage> createState() => _AddPageState();
+}
+
+class _AddPageState extends State<AddPage> {
+  final _controller = TextEditingController();
+
+  void _save() {
+    final title = _controller.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a title!')),
+      );
+      return;
+    }
+    Navigator.pop(context, title);
   }
+
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Add Expense')),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Expense title'),
+              onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: _save, child: const Text('Save')),
+          ]),
+        ),
+      );
 }
