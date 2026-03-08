@@ -1,226 +1,218 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: ExpenseListPage(),
-    ));
+// ── Model ──────────────────────────────────────────────────────────────────────
 
-// ── Expense Model ──
 class Expense {
-  String title;
-  double amount;
-  Expense({required this.title, required this.amount});
+  final String title;
+  final double amount;
+  final String date;
+
+  const Expense({required this.title, required this.amount, required this.date});
 }
 
-// ── Screen 1: Expense List ──
-class ExpenseListPage extends StatefulWidget {
-  const ExpenseListPage({super.key});
+// ── Dummy Data ─────────────────────────────────────────────────────────────────
+
+final List<Expense> _dummyExpenses = [
+  Expense(title: 'Coffee', amount: 80, date: 'Mar 1'),
+  Expense(title: 'Groceries', amount: 350, date: 'Mar 3'),
+  Expense(title: 'Grab Ride', amount: 120, date: 'Mar 7'),
+  Expense(title: 'Netflix', amount: 199, date: 'Mar 10'),
+  Expense(title: 'Electricity Bill', amount: 1200, date: 'Mar 12'),
+];
+
+// ── Part A: ExpenseItem Widget ─────────────────────────────────────────────────
+
+class ExpenseItem extends StatelessWidget {
+  final Expense expense;
+  const ExpenseItem({super.key, required this.expense});
+
   @override
-  State<ExpenseListPage> createState() => _ExpenseListPageState();
-}
-
-class _ExpenseListPageState extends State<ExpenseListPage> {
-  final List<Expense> _expenses = [
-    Expense(title: 'Coffee', amount: 80),
-    Expense(title: 'Groceries', amount: 350),
-    Expense(title: 'Grab Ride', amount: 120),
-  ];
-
-  Future<void> _openAddScreen() async {
-    final result = await Navigator.push<Expense>(
-      context,
-      MaterialPageRoute(builder: (_) => const AddEditExpensePage()),
-    );
-    if (result != null && mounted) {
-      setState(() => _expenses.add(result));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Added: ${result.title}')),
-      );
-    }
-  }
-
-  Future<void> _openEditScreen(int index) async {
-    final result = await Navigator.push<Expense>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddEditExpensePage(existing: _expenses[index]),
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: Colors.deepPurple,
+          child: Icon(Icons.receipt_long, color: Colors.white, size: 20),
+        ),
+        title: Text(expense.title,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(expense.date,
+            style: const TextStyle(color: Colors.grey)),
+        trailing: Text(
+          '₱${expense.amount.toStringAsFixed(2)}',
+          style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.deepPurple),
+        ),
       ),
     );
-    if (result != null && mounted) {
-      setState(() => _expenses[index] = result);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Updated: ${result.title}')),
-      );
-    }
+  }
+}
+
+// ── Part C: Empty State ────────────────────────────────────────────────────────
+
+class EmptyState extends StatelessWidget {
+  const EmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long_outlined, size: 72, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No expenses yet',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('Tap + to add one', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Total Banner ───────────────────────────────────────────────────────────────
+
+class TotalBanner extends StatelessWidget {
+  final double total;
+  const TotalBanner({super.key, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFDDD9F3),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Total Expenses',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.deepPurple,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '₱${total.toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Part B: ExpenseListScreen ──────────────────────────────────────────────────
+
+class ExpenseListScreen extends StatefulWidget {
+  const ExpenseListScreen({super.key});
+
+  @override
+  State<ExpenseListScreen> createState() => _ExpenseListScreenState();
+}
+
+class _ExpenseListScreenState extends State<ExpenseListScreen> {
+  List<Expense> _expenses = [];
+
+  double get _total => _expenses.fold(0, (sum, e) => sum + e.amount);
+
+  void _addExpense() {
+    final titleCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Add Expense'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Amount (₱)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final title = titleCtrl.text.trim();
+              final amount = double.tryParse(amountCtrl.text.trim());
+              if (title.isEmpty || amount == null) return;
+              setState(() => _expenses.add(Expense(
+                    title: title,
+                    amount: amount,
+                    date: 'Mar ${_expenses.length + 1}',
+                  )));
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('My Expenses'),
-          backgroundColor: Colors.deepPurple,
-          foregroundColor: Colors.white,
-        ),
-        body: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _expenses.length,
-          itemBuilder: (context, index) {
-            final e = _expenses[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: CircleAvatar(
-                  backgroundColor: Colors.deepPurple,
-                  child: Text(
-                    '${index + 1}',   // 👈 number instead of broken icon
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Expense Tracker'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        centerTitle: true,
+      ),
+      body: _expenses.isEmpty
+          ? const EmptyState()
+          : Column(
+              children: [
+                // Total banner — matches the screenshot
+                TotalBanner(total: _total),
+                // List
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: _expenses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 2),
+                    itemBuilder: (_, index) =>
+                        ExpenseItem(expense: _expenses[index]),
                   ),
                 ),
-                title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(
-                  '₱${e.amount.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.deepPurple),
-                ),
-                trailing: const Icon(Icons.edit, color: Colors.grey),
-                onTap: () => _openEditScreen(index),
-              ),
-            );
-          },
-        ),
-        floatingActionButton: Tooltip(
-          message: 'Add Expense',
-          child: FloatingActionButton(
-            onPressed: _openAddScreen,
-            backgroundColor: Colors.deepPurple,
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.add),
-          ),
-        ),
-      );
+              ],
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addExpense,
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 }
 
-// ── Screen 2: Add / Edit Expense ──
-class AddEditExpensePage extends StatefulWidget {
-  final Expense? existing;
-  const AddEditExpensePage({super.key, this.existing});
-  @override
-  State<AddEditExpensePage> createState() => _AddEditExpensePageState();
-}
+// ── Entry Point ────────────────────────────────────────────────────────────────
 
-class _AddEditExpensePageState extends State<AddEditExpensePage> {
-  final _titleController = TextEditingController();
-  final _amountController = TextEditingController();
-  String? _titleError;
-  String? _amountError;
-
-  bool get _isEditMode => widget.existing != null;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isEditMode) {
-      _titleController.text = widget.existing!.title;
-      _amountController.text = widget.existing!.amount.toString();
-    }
-  }
-
-  void _save() {
-    final title = _titleController.text.trim();
-    final amountText = _amountController.text.trim();
-    final amount = double.tryParse(amountText);
-
-    setState(() {
-      _titleError = title.isEmpty ? 'Title cannot be empty' : null;
-      _amountError = amountText.isEmpty
-          ? 'Amount cannot be empty'
-          : (amount == null || amount <= 0)
-              ? 'Enter a valid amount greater than 0'
-              : null;
-    });
-
-    if (_titleError != null || _amountError != null) return;
-    Navigator.pop(context, Expense(title: title, amount: amount!));
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _amountController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text(_isEditMode ? 'Edit Expense' : 'Add Expense'),
-          backgroundColor: Colors.deepPurple,
-          foregroundColor: Colors.white,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _isEditMode ? 'Update your expense' : 'What did you spend on?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _titleController,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'Expense title',
-                  errorText: _titleError,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.label_outline),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Amount',
-                  errorText: _amountError,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.payments_outlined),
-                  prefixText: '₱ ',
-                ),
-              ),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                child: Text(_isEditMode ? 'Update' : 'Save'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
-        ),
-      );
-}
+void main() => runApp(const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ExpenseListScreen(),
+    ));
