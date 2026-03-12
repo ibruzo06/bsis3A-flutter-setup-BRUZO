@@ -1,58 +1,138 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-// ── Model ──────────────────────────────────────────────────────────────────────
+/// ───────────────── MODEL ─────────────────
 
 class Expense {
-  final String title;
-  final double amount;
-  final String date;
+  String title;
+  double amount;
+  String date;
 
-  const Expense({required this.title, required this.amount, required this.date});
+  Expense({
+    required this.title,
+    required this.amount,
+    required this.date,
+  });
 }
 
-// ── Dummy Data ─────────────────────────────────────────────────────────────────
+/// ─────────────── PROVIDER ────────────────
 
-final List<Expense> _dummyExpenses = [
-  Expense(title: 'Coffee', amount: 80, date: 'Mar 1'),
-  Expense(title: 'Groceries', amount: 350, date: 'Mar 3'),
-  Expense(title: 'Grab Ride', amount: 120, date: 'Mar 7'),
-  Expense(title: 'Netflix', amount: 199, date: 'Mar 10'),
-  Expense(title: 'Electricity Bill', amount: 1200, date: 'Mar 12'),
-];
+class ExpensesProvider extends ChangeNotifier {
+  final List<Expense> _expenses = [
+    Expense(title: 'Coffee', amount: 80, date: 'Mar 1'),
+    Expense(title: 'Groceries', amount: 350, date: 'Mar 3'),
+  ];
 
-// ── Part A: ExpenseItem Widget ─────────────────────────────────────────────────
+  List<Expense> get expenses => _expenses;
+
+  double get total =>
+      _expenses.fold(0, (sum, item) => sum + item.amount);
+
+  // CREATE
+  void addExpense(Expense expense) {
+    _expenses.add(expense);
+    notifyListeners();
+  }
+
+  // READ
+  List<Expense> getExpenses() {
+    return _expenses;
+  }
+
+  // UPDATE
+  void editExpense(int index, Expense newExpense) {
+    _expenses[index] = newExpense;
+    notifyListeners();
+  }
+
+  // DELETE
+  void deleteExpense(int index) {
+    _expenses.removeAt(index);
+    notifyListeners();
+  }
+}
+
+/// ─────────────── MAIN APP ────────────────
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ExpensesProvider(),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ExpenseListScreen(),
+    );
+  }
+}
+
+/// ───────────── EXPENSE ITEM ──────────────
 
 class ExpenseItem extends StatelessWidget {
   final Expense expense;
-  const ExpenseItem({super.key, required this.expense});
+  final int index;
+
+  const ExpenseItem({
+    super.key,
+    required this.expense,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: ListTile(
         leading: const CircleAvatar(
           backgroundColor: Colors.deepPurple,
-          child: Icon(Icons.receipt_long, color: Colors.white, size: 20),
+          child: Icon(Icons.receipt_long, color: Colors.white),
         ),
-        title: Text(expense.title,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(expense.date,
-            style: const TextStyle(color: Colors.grey)),
-        trailing: Text(
-          '₱${expense.amount.toStringAsFixed(2)}',
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.deepPurple),
+        title: Text(
+          expense.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(expense.date),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '₱${expense.amount}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                Provider.of<ExpensesProvider>(context, listen: false)
+                    .deleteExpense(index);
+              },
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Part C: Empty State ────────────────────────────────────────────────────────
+/// ───────────── EMPTY STATE ──────────────
 
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key});
@@ -60,25 +140,19 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.receipt_long_outlined, size: 72, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No expenses yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          SizedBox(height: 8),
-          Text('Tap + to add one', style: TextStyle(color: Colors.grey)),
-        ],
+      child: Text(
+        "No expenses yet",
+        style: TextStyle(fontSize: 18),
       ),
     );
   }
 }
 
-// ── Total Banner ───────────────────────────────────────────────────────────────
+/// ───────────── TOTAL BANNER ─────────────
 
 class TotalBanner extends StatelessWidget {
   final double total;
+
   const TotalBanner({super.key, required this.total});
 
   @override
@@ -86,14 +160,14 @@ class TotalBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: const Color(0xFFDDD9F3),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Total Expenses',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: Colors.deepPurple,
             ),
           ),
@@ -101,7 +175,7 @@ class TotalBanner extends StatelessWidget {
           Text(
             '₱${total.toStringAsFixed(2)}',
             style: const TextStyle(
-              fontSize: 36,
+              fontSize: 34,
               fontWeight: FontWeight.bold,
               color: Colors.deepPurple,
             ),
@@ -112,62 +186,56 @@ class TotalBanner extends StatelessWidget {
   }
 }
 
-// ── Part B: ExpenseListScreen ──────────────────────────────────────────────────
+/// ─────────── EXPENSE LIST SCREEN ─────────
 
-class ExpenseListScreen extends StatefulWidget {
+class ExpenseListScreen extends StatelessWidget {
   const ExpenseListScreen({super.key});
 
-  @override
-  State<ExpenseListScreen> createState() => _ExpenseListScreenState();
-}
-
-class _ExpenseListScreenState extends State<ExpenseListScreen> {
-  List<Expense> _expenses = [];
-
-  double get _total => _expenses.fold(0, (sum, e) => sum + e.amount);
-
-  void _addExpense() {
+  void _addExpense(BuildContext context) {
     final titleCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Add Expense'),
+        title: const Text("Add Expense"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleCtrl,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: const InputDecoration(labelText: "Title"),
             ),
             TextField(
               controller: amountCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (₱)'),
+              decoration: const InputDecoration(labelText: "Amount"),
             ),
           ],
         ),
         actions: [
           TextButton(
+            child: const Text("Cancel"),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
           ElevatedButton(
+            child: const Text("Save"),
             onPressed: () {
-              final title = titleCtrl.text.trim();
-              final amount = double.tryParse(amountCtrl.text.trim());
-              if (title.isEmpty || amount == null) return;
-              setState(() => _expenses.add(Expense(
-                    title: title,
-                    amount: amount,
-                    date: 'Mar ${_expenses.length + 1}',
-                  )));
+              final title = titleCtrl.text;
+              final amount = double.tryParse(amountCtrl.text) ?? 0;
+
+              Provider.of<ExpensesProvider>(context, listen: false)
+                  .addExpense(
+                Expense(
+                  title: title,
+                  amount: amount,
+                  date: "Mar",
+                ),
+              );
+
               Navigator.pop(context);
             },
-            child: const Text('Save'),
-          ),
+          )
         ],
       ),
     );
@@ -177,42 +245,39 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expense Tracker'),
+        title: const Text("Expense Tracker"),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
-        centerTitle: true,
       ),
-      body: _expenses.isEmpty
-          ? const EmptyState()
-          : Column(
-              children: [
-                // Total banner — matches the screenshot
-                TotalBanner(total: _total),
-                // List
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _expenses.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 2),
-                    itemBuilder: (_, index) =>
-                        ExpenseItem(expense: _expenses[index]),
-                  ),
+      body: Consumer<ExpensesProvider>(
+        builder: (context, provider, child) {
+          if (provider.expenses.isEmpty) {
+            return const EmptyState();
+          }
+
+          return Column(
+            children: [
+              TotalBanner(total: provider.total),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: provider.expenses.length,
+                  itemBuilder: (context, index) {
+                    return ExpenseItem(
+                      expense: provider.expenses[index],
+                      index: index,
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addExpense,
+        onPressed: () => _addExpense(context),
         backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
     );
   }
 }
-
-// ── Entry Point ────────────────────────────────────────────────────────────────
-
-void main() => runApp(const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: ExpenseListScreen(),
-    ));
